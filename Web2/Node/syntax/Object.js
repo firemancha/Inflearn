@@ -1,5 +1,10 @@
 var members = ['egoing', 'k8805', 'hoya'];
 console.log(members[1]);  // k8805
+var i = 0;
+while (i < members.length) {
+  console.log('array loop', members[i]);
+  i++;
+}
 
 var roles = {
   'programmer': 'egoing',
@@ -7,3 +12,7 @@ var roles = {
   'manager': 'hoya',
 }
 console.log(roles.designer);
+
+for (var name in roles) {
+  console.log('object => ', name, '\tvalue => ', roles[name]);
+}
