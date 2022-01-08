@@ -2,34 +2,9 @@ var http = require('http');
 var fs = require('fs');
 var url = require('url');
 var qs = require('querystring');
-
-function templateHTML(title, list, body, control) {
-  return `
-  <!doctype html>
-  <html>
-    <head>
-      <title>WEB1 - ${title}</title>
-      <meta charset="utf-8"/>
-    </head>
-    <body>
-      <h1><a href="/">WEB</a></h1>
-      <ul>${list}</ul>
-      ${control}      
-      ${body}
-    </body>
-  </html>
-  `;
-}
-
-function templateList(filelist) {
-  var list = '';
-  var i = 0;
-  while (i < filelist.length) {
-    list = list + `<li><a href="/?id=${filelist[i]}">${filelist[i]}</a></li>`;
-    i = i + 1;
-  }
-  return list;
-}
+var path = require('path');
+var sanitizeHtml = require('sanitize-html');
+var template = require('./lib/template');
 
 var app = http.createServer(function (request, response) {
   var _url = request.url;
@@ -40,31 +15,42 @@ var app = http.createServer(function (request, response) {
     if (queryData.id === undefined) {
       fs.readdir('./data', function (err, filelist) {
         var title = 'Welcome';
-        var description = 'Hello, Node.js';
-        list = templateList(filelist);
-        var template = templateHTML(title, list,
+        var description = `The World Wide Web (abbreviated WWW or the Web) is an information space
+where documents and other web resources are identified by Uniform
+Resource Locators(URLs), interlinked by hypertext links, and can
+be accessed via the Internet. [1] English scientist Tim Berners - Lee
+invented the World Wide Web in 1989. He wrote the first web browser
+computer program in 1990 while employed at CREN in Switzerland. [2][3]
+The Web browser was released outside of CERN in 1991, first to other
+research institutions starting in Junuary 1991 and the the general
+public on the Internet in August 1991.`;
+        list = template.list(filelist);
+        var html = template.html(title, list,
           `<h2>${title}</h2>${description}`,
           `<a href="/create">create</a>`
         );
         response.writeHead(200);
-        response.end(template);
+        response.end(html);
       });
     } else {
       fs.readdir('./data', function (err, filelist) {
-        list = templateList(filelist);
-        fs.readFile(`data/${queryData.id}`, 'utf8', function (err, description) {
+        var filteredId = path.parse(queryData.id).base;
+        fs.readFile(`data/${filteredId}`, 'utf8', function (err, description) {
           var title = queryData.id;
-          var template = templateHTML(title, list,
-            `<h2>${title}</h2>${description}`,
+          var sanitizedTitle = sanitizeHtml(title);
+          var snitizedDescription = sanitizeHtml(description);
+          var list = template.list(filelist);
+          var html = template.html(title, list,
+            `<h2>${sanitizedTitle}</h2>${snitizedDescription}`,
             ` <a href="/create">create</a>
-              <a href="/update?id=${title}">update</a>
+              <a href="/update?id=${sanitizedTitle}">update</a>
               <form action="delete_process" method="post">
-                <input type="hidden" name="id" value="${title}" />
+                <input type="hidden" name="id" value="${sanitizedTitle}" />
                 <input type="submit" value="delete" />
               </form>`
           );
           response.writeHead(200);
-          response.end(template);
+          response.end(html);
         });
       });
     }
@@ -72,8 +58,8 @@ var app = http.createServer(function (request, response) {
     fs.readdir('./data', function (err, filelist) {
       var title = "Welcome";
       var description = "Hello, Node.js";
-      var list = templateList(filelist);
-      var template = templateHTML(title, list, `
+      var list = template.list(filelist);
+      var html = template.html(title, list, `
         <form action="/create_process" method="post">
           <p><input type="text" name="title" placeholder="title"/></p>
           <p>
@@ -85,7 +71,7 @@ var app = http.createServer(function (request, response) {
         </form>
       `, '');
       response.writeHead(200);
-      response.end(template);
+      response.end(html);
     });
   } else if (pathname === '/create_process') {
     var body = '';
@@ -103,10 +89,11 @@ var app = http.createServer(function (request, response) {
     });
   } else if (pathname === '/update') {
     fs.readdir('./data', function (err, filelist) {
-      fs.readFile(`data/${queryData.id}`, 'utf8', function (err, description) {
+      var filteredId = path.parse(queryData.id).base;
+      fs.readFile(`data/${filteredId}`, 'utf8', function (err, description) {
         var title = queryData.id;
-        var list = templateList(filelist);
-        var template = templateHTML(title, list,
+        var list = template.list(filelist);
+        var html = template.html(title, list,
           `
           <form action="/update_process" method="post">
           <input type="hidden" name="id" placeholder="title" value="${title}"/>
@@ -122,7 +109,7 @@ var app = http.createServer(function (request, response) {
           `<a href="/create">create</a> <a href="/update?id=${title}">update</a>`
         );
         response.writeHead(200);
-        response.end(template);
+        response.end(html);
       });
     })
   } else if (pathname === '/update_process') {
@@ -151,8 +138,8 @@ var app = http.createServer(function (request, response) {
     request.on('end', function () {
       var post = qs.parse(body);
       var id = post.id;
-
-      fs.unlink(`data/${id}`, function (err) {
+      var filteredId = path.parse(id).base;
+      fs.unlink(`data/${filteredId}`, function (err) {
         response.writeHead(302, { Location: `/` });
         response.end();
       });
