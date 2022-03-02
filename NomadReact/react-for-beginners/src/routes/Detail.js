@@ -31,7 +31,7 @@ function Detail() {
               <b>{movie.year}</b>year
             </span>
             <span style={{ margin: "20px" }}>
-              <b>{movie.rating}</b>rating
+              (<b>{movie.rating}</b>/10)rating
             </span>
             <span style={{ margin: "20px" }}>
               <b>runtime: </b>
