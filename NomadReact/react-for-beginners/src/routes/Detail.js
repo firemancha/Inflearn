@@ -24,7 +24,11 @@ function Detail() {
           <img src={movie.medium_cover_image} alt="" />
           <h1>{movie.title}</h1>
           <h3>Description</h3>
-          <p>{movie.description_full}</p>
+          <p>
+            {movie.description_full.length > 235
+              ? movie.description_full.slice(0, 232) + "..."
+              : movie.description_full}
+          </p>
           <h3>Info</h3>
           <div>
             <span style={{ margin: "20px" }}>
